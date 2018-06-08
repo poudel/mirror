@@ -16,6 +16,16 @@ func cleanIp(r *http.Request) string {
 	return addr[:occur]
 }
 
+func writeResponse(w http.ResponseWriter, js []byte, err error, status int) {
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(js)
+}
+
 func mirrorStatus(w http.ResponseWriter, r *http.Request) {
 
 	type StatusResponse struct {
@@ -41,23 +51,10 @@ func mirrorStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := StatusResponse{
-		message,
-		status_code,
-		cleanIp(r),
-		r.Method,
-	}
-
-	js, err := json.Marshal(response)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status_code)
-	w.Write(js)
+	js, err := json.Marshal(
+		StatusResponse{message, status_code, cleanIp(r), r.Method},
+	)
+	writeResponse(w, js, err, status_code)
 }
 
 func mirrorIp(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +66,7 @@ func mirrorIp(w http.ResponseWriter, r *http.Request) {
 	response := IpResponse{cleanIp(r)}
 
 	js, err := json.Marshal(response)
-	writeResponse(w, js, err)
+	writeResponse(w, js, err, http.StatusOK)
 }
 
 func mirrorNow(w http.ResponseWriter, r *http.Request) {
@@ -94,8 +91,7 @@ func mirrorNow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	js, err := json.Marshal(response)
-	writeResponse(w, js, err)
-
+	writeResponse(w, js, err, http.StatusOK)
 }
 
 func mirrorUserAgent(w http.ResponseWriter, r *http.Request) {
@@ -108,16 +104,7 @@ func mirrorUserAgent(w http.ResponseWriter, r *http.Request) {
 	response := UserAgentResponse{r.UserAgent(), cleanIp(r)}
 
 	js, err := json.Marshal(response)
-	writeResponse(w, js, err)
-}
-
-func writeResponse(w http.ResponseWriter, js []byte, err error) {
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	writeResponse(w, js, err, http.StatusOK)
 }
 
 func mirrorHeaders(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +119,7 @@ func mirrorHeaders(w http.ResponseWriter, r *http.Request) {
 		response.Headers[key] = values[0]
 	}
 	js, err := json.Marshal(response)
-	writeResponse(w, js, err)
+	writeResponse(w, js, err, http.StatusOK)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +133,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		cleanIp(r),
 	}
 	js, err := json.Marshal(response)
-	writeResponse(w, js, err)
+	writeResponse(w, js, err, http.StatusOK)
 }
 
 func main() {
